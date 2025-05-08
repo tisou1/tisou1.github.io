@@ -1,0 +1,1 @@
+import{u as e,a as n,j as s}from"./index-ClElWwUX.js";function i(){const a=e(),t=n();return s.jsxs("div",{className:"text-center",children:[s.jsxs("p",{className:"text-sm opacity-50",children:["欢迎:",a.name]}),s.jsx("div",{children:s.jsx("button",{className:'btn m-3 text-sm mt-8"',onClick:()=>t(-1),children:"back"})})]})}export{i as default};
