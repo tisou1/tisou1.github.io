@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><title>把博客部署到 GitHub Pages：双仓库模式实战 · tisou1 的博客</title><meta name="description" content="从方案选型到上线踩坑的完整记录：双仓库架构、跨仓库推送的 workflow、.nojekyll 这个关键标记，以及中文提交乱码的处理。"><link rel="canonical" href="https://tisou1.github.io/posts/deploy-to-github-pages.html"><meta property="og:title" content="把博客部署到 GitHub Pages：双仓库模式实战"><meta property="og:description" content="从方案选型到上线踩坑的完整记录：双仓库架构、跨仓库推送的 workflow、.nojekyll 这个关键标记，以及中文提交乱码的处理。"><meta property="og:type" content="article"><meta property="og:url" content="https://tisou1.github.io/posts/deploy-to-github-pages.html"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate" type="application/rss+xml" title="tisou1 的博客" href="/rss.xml"><script>
+      try {
+        const theme = localStorage.getItem('theme');
+        document.documentElement.dataset.theme = theme === 'dark' || (!theme && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      } catch { document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+    </script><link rel="stylesheet" href="/_astro/Base.C9xW9-QR.css"></head><body><a class="skip-link" href="#main">跳到正文</a><div class="banner" id="banner">一份关于技术、实践与思考的个人笔记 <button type="button" id="close-banner" aria-label="关闭欢迎横幅">×</button></div><script>
+      try { if (localStorage.getItem('blog-banner') === 'hidden') document.getElementById('banner').hidden = true; } catch {}
+    </script><header class="header"><a class="brand" href="/" aria-label="tisou1 的博客首页"><span class="brand-name">tisou1<span class="brand-dot">.</span></span><span class="brand-caption">PERSONAL NOTES</span></a><nav aria-label="主导航"><a href="/">关于</a><a href="/posts" aria-current="page">文章</a><a href="/docs">实验室</a></nav><div class="tools"><a href="/search" class="search-link" aria-label="搜索文章" title="搜索文章 (Ctrl / ⌘ K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg></a><button type="button" id="theme-toggle" aria-label="切换深色模式" aria-pressed="false"><svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.5A8.6 8.6 0 0 1 9.5 4 8.7 8.7 0 1 0 20 14.5Z"></path></svg><svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"></path></svg></button></div></header><main class="reading-layout" id="main" tabindex="-1" data-pagefind-body="true"><article><header class="post-heading"><a class="article-back" href="/posts" data-pagefind-ignore>← 文章与笔记</a><h1 data-pagefind-meta="title">把博客部署到 GitHub Pages：双仓库模式实战</h1><p class="meta"><time datetime="2026-09-04T00:00:00.000Z">2026-09-04</time> · tisou1 · 6 分钟阅读</p><div class="tags" data-pagefind-ignore><a class="tag" href="/tags/Nextra">Nextra</a><a class="tag" href="/tags/GitHub%20Pages">GitHub Pages</a><a class="tag" href="/tags/GitHub%20Actions">GitHub Actions</a><a class="tag" href="/tags/CI/CD">CI/CD</a></div></header><details class="toc" data-pagefind-ignore><summary>文章目录</summary><ul><li><a href="#方案选型三种部署路径">方案选型：三种部署路径</a></li><li><a href="#双仓库架构">双仓库架构</a></li><li><a href="#最大的坑nojekyll">最大的坑：.nojekyll</a></li><li><a href="#第二个坑powershell-中文提交乱码">第二个坑：PowerShell 中文提交乱码</a></li><li><a href="#验证清单">验证清单</a></li><li><a href="#日常更新流程">日常更新流程</a></li><li><a href="#待优化部署推送方式可切换为-gh-pages-工具">待优化：部署推送方式可切换为 gh-pages 工具</a></li></ul></details><div class="prose"><p>这篇记录的是本站上线的全过程。博客本体跑通之后，“部署到哪、怎么自动发布”就成了下一个问题，这一趟下来踩的坑不少，最典型的是一个叫 <code>.nojekyll</code> 的空文件。</p>
+<h2 id="方案选型三种部署路径">方案选型：三种部署路径</h2>
+<p>GitHub Pages 有两种站点类型，部署方案要围绕它们来选：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>类型</th><th>仓库要求</th><th>访问地址</th></tr></thead><tbody><tr><td>User site</td><td>仓库必须叫 <code>&lt;用户名&gt;.github.io</code></td><td><code>https://tisou1.github.io</code></td></tr><tr><td>Project site</td><td>任意仓库</td><td><code>https://tisou1.github.io/&lt;仓库名&gt;</code></td></tr></tbody></table>
+<p>由此延伸出三种常见路径：</p>
+<ol>
+<li><strong>子路径部署</strong>：<code>nextra-blog</code> 仓库直接开 Pages，访问 <code>.../nextra-blog/</code>。最简单，但要在 <code>next.config.ts</code> 配置 <code>basePath</code>，所有静态资源都会带一层前缀</li>
+<li><strong>重命名仓库</strong>：把仓库改名为 <code>tisou1.github.io</code>，源码零改动，但仓库名被固定</li>
+<li><strong>双仓库模式</strong>：保留 <code>nextra-blog</code> 存源码，另建一个 <code>tisou1.github.io</code> 空仓库存构建产物，用 GitHub Actions 桥接</li>
+</ol>
+<p>我选了第 3 种：<strong>日常只更新 <code>nextra-blog</code></strong>，推送后 Actions 自动构建，把静态产物推到 <code>tisou1.github.io</code>，站点根域名访问。</p>
+<h2 id="双仓库架构">双仓库架构</h2>
+<div class="expressive-code"><link rel="stylesheet" href="/_astro/ec.1ajff.css"/><script type="module" src="/_astro/ec.0vx5m.js"></script><figure class="frame"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">nextra-blog (main)               tisou1.github.io (main)</span></div></div><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">┌──────────────────┐   Actions  ┌────────────────────┐</span></div></div><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">│  源码 + workflow  │ ─构建推送──▶│  构建产物 + .nojekyll │──▶ Pages 发布</span></div></div><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">└──────────────────┘            └────────────────────┘</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="nextra-blog (main)               tisou1.github.io (main)┌──────────────────┐   Actions  ┌────────────────────┐│  源码 + workflow  │ ─构建推送──▶│  构建产物 + .nojekyll │──▶ Pages 发布└──────────────────┘            └────────────────────┘"><div></div></button></div></figure></div>
+<p>发布仓库只放构建产物，历史只有一条最新部署的提交（每次 force push 单条全新 commit），干净且可回溯。</p>
+<h3 id="前置配置网页端一次性">前置配置（网页端，一次性）</h3>
+<ol>
+<li>创建空仓库 <code>tisou1.github.io</code>，<strong>不要</strong>初始化 README</li>
+<li>生成 Fine-grained PAT（GitHub → Settings → Developer settings），权限只需两项：仓库范围选 <code>tisou1.github.io</code>，权限只给 <strong>Contents: Read and write</strong></li>
+<li>把 token 存到 <code>nextra-blog</code> 仓库的 Actions Secret，名称 <code>DEPLOY_TOKEN</code></li>
+</ol>
+<blockquote>
+<p>为什么需要 PAT？因为 workflow 里默认的 <code>GITHUB_TOKEN</code> 只有当前仓库的写权限，推不到另一个仓库。</p>
+</blockquote>
+<h3 id="核心-workflow">核心 workflow</h3>
+<p><code>.github/workflows/deploy.yml</code> 的部署步骤：</p>
+<div class="expressive-code"><figure class="frame"><figcaption class="header"></figcaption><pre data-language="yaml"><code><div class="ec-line"><div class="code"><span style="--0:#24292E;--1:#E1E4E8">- </span><span style="--0:#1E7734;--1:#85E89D">name</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#032F62;--1:#9ECBFF">Push dist to tisou1.github.io</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#1E7734;--1:#85E89D">env</span><span style="--0:#24292E;--1:#E1E4E8">:</span></div></div><div class="ec-line"><div class="code"><span class="indent">    </span><span style="--0:#1E7734;--1:#85E89D">DEPLOY_TOKEN</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#032F62;--1:#9ECBFF">${{ secrets.DEPLOY_TOKEN }}</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#1E7734;--1:#85E89D">run</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#BF3441;--1:#F97583">|</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">    </span></span><span style="--0:#032F62;--1:#9ECBFF">cd out</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">    </span></span><span style="--0:#032F62;--1:#9ECBFF">touch .nojekyll</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">    </span></span><span style="--0:#032F62;--1:#9ECBFF">git init -b main</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">    </span></span><span style="--0:#032F62;--1:#9ECBFF">git config user.name &quot;github-actions[bot]&quot;</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">    </span></span><span style="--0:#032F62;--1:#9ECBFF">git config user.email &quot;github-actions[bot]@users.noreply.github.com&quot;</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">    </span></span><span style="--0:#032F62;--1:#9ECBFF">git add -A</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">    </span></span><span style="--0:#032F62;--1:#9ECBFF">git commit -m &quot;Deploy from nextra-blog@${{ github.sha }}&quot;</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">    </span></span><span style="--0:#032F62;--1:#9ECBFF">git push -f &quot;https://x-access-token:${DEPLOY_TOKEN}@github.com/tisou1/tisou1.github.io.git&quot; main:main</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="- name: Push dist to tisou1.github.io  env:    DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}  run: |    cd out    touch .nojekyll    git init -b main    git config user.name &quot;github-actions[bot]&quot;    git config user.email &quot;github-actions[bot]@users.noreply.github.com&quot;    git add -A    git commit -m &quot;Deploy from nextra-blog@${{ github.sha }}&quot;    git push -f &quot;https://x-access-token:${DEPLOY_TOKEN}@github.com/tisou1/tisou1.github.io.git&quot; main:main"><div></div></button></div></figure></div>
+<p>两点设计：</p>
+<ul>
+<li><code>env</code> 传入 token 而不是直接内插到命令行，减少凭据暴露面</li>
+<li><code>touch .nojekyll</code> —— 下文的主角，没有它整个站点等于没样式</li>
+</ul>
+<p>构建链沿用项目自身的脚本：<code>pnpm build</code>（Next.js <code>output: &#39;export&#39;</code> 静态导出），<code>postbuild</code> 自动跑 pagefind 生成搜索索引到 <code>out/_pagefind</code>，所以整个 <code>out/</code> 一起推上去，搜索就可用。</p>
+<h2 id="最大的坑nojekyll">最大的坑：<code>.nojekyll</code></h2>
+<p><strong>现象</strong>：第一次部署后，<code>https://tisou1.github.io</code> 首页能打开，但 CSS、JS 全部 404，页面裸奔。</p>
+<p><strong>原因</strong>：GitHub Pages 在「Deploy from a branch」模式下，收到文件后默认先用 <strong>Jekyll</strong>（Ruby 静态站生成器）处理一遍再发布。而 Jekyll 有个约定：<strong>所有下划线开头的目录都被视为内部目录，构建时不发布</strong>。</p>
+<p>Next.js 的产物恰恰全是下划线开头：</p>
+<div class="expressive-code"><figure class="frame"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">out/</span></div></div><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">├── index.html    ✅ 正常发布</span></div></div><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">├── rss.xml       ✅ 正常发布</span></div></div><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">├── _next/        ❌ CSS、JS 全在这里，被 Jekyll 丢弃</span></div></div><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">└── _pagefind/    ❌ 搜索索引，被丢弃</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="out/├── index.html    ✅ 正常发布├── rss.xml       ✅ 正常发布├── _next/        ❌ CSS、JS 全在这里，被 Jekyll 丢弃└── _pagefind/    ❌ 搜索索引，被丢弃"><div></div></button></div></figure></div>
+<p>HTML 不带下划线所以能打开，但页面引用的 <code>/_next/static/...</code> 在服务器上根本不存在，404。</p>
+<p><strong>解法</strong>：在产物根目录放一个空的 <code>.nojekyll</code> 文件。它是 GitHub Pages 约定的开关标记——检测到它就跳过 Jekyll，你推什么就发什么。官方文档在《Configuring a publishing source for your GitHub Pages site》的 troubleshooting 章节提到：外部 CI 部署时”typically include a <code>.nojekyll</code> file”，Pages 会因此识别出该分支”不需要构建步骤”。</p>
+<p><strong>验证</strong>：修复后用脚本检查所有资源状态码，CSS/JS 从全 404 变成全 200。</p>
+<p>这一步对所有非 Jekyll 项目（Next.js、Vue、Sphinx 等）都是<strong>必做</strong>的——只要产物里有 <code>_</code> 开头的文件或目录。</p>
+<h2 id="第二个坑powershell-中文提交乱码">第二个坑：PowerShell 中文提交乱码</h2>
+<p>在 Windows PowerShell 里直接 <code>git commit -m &quot;中文信息&quot;</code>，提交信息会变成类似 <code>鏀圭敤璺ㄤ粨搴撴帹閫侀儴缃插埌</code> 的乱码——shell 向 git 传参时发生了 GBK/UTF-8 编码混淆。</p>
+<p><strong>解法</strong>：中文提交信息不走命令行，写进 UTF-8 编码的文件再用 <code>-F</code> 提交：</p>
+<div class="expressive-code"><figure class="frame is-terminal"><figcaption class="header"><span class="title"></span><span class="sr-only">Terminal window</span></figcaption><pre data-language="powershell"><code><div class="ec-line"><div class="code"><span style="--0:#24292E;--1:#E1E4E8">git commit </span><span style="--0:#BF3441;--1:#F97583">-F</span><span style="--0:#24292E;--1:#E1E4E8"> commit</span><span style="--0:#BF3441;--1:#F97583">-</span><span style="--0:#24292E;--1:#E1E4E8">msg.txt</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="git commit -F commit-msg.txt"><div></div></button></div></figure></div>
+<p>如果乱码 commit 已经推上去了，只能重写历史修复：<code>git reset --soft &lt;目标提交&gt;</code> 后重新提交，再 <code>git push --force-with-lease</code> 覆盖。<code>--force-with-lease</code> 比裸 <code>--force</code> 安全——如果远端有别人的新提交会拒绝推送。</p>
+<h2 id="验证清单">验证清单</h2>
+<p>部署完成后我逐项核验过，供以后排查时参考：</p>
+<ul>
+<li>首页 <code>https://tisou1.github.io/</code> → 200</li>
+<li>CSS / JS（<code>/_next/static/...</code>）→ 200（<code>.nojekyll</code> 生效的标志）</li>
+<li>RSS <code>https://tisou1.github.io/rss.xml</code> → 200</li>
+<li>搜索索引 <code>/_pagefind/pagefind.js</code> → 200</li>
+<li>文章页（如 <code>/posts/hello-nextra</code>）→ 正常渲染</li>
+</ul>
+<p>一个细节：Next.js 静态导出生成的是 <code>hello-nextra.html</code> 而不是 <code>hello-nextra/index.html</code>（因为默认 <code>trailingSlash: false</code>），所以直接访问 <code>/posts/hello-nextra/</code>（带尾斜杠）会 404，但站内链接都是无斜杠形式，GitHub Pages 会自动 301 到 <code>.html</code>，不影响正常浏览。</p>
+<h2 id="日常更新流程">日常更新流程</h2>
+<p>配置完成后，写博客的流程就是：</p>
+<ol>
+<li>在 <code>app/posts/&lt;文章名&gt;/page.mdx</code> 写新文章</li>
+<li>提交并推送到 <code>nextra-blog</code></li>
+<li>Actions 自动构建推送，约 1~2 分钟后站点更新</li>
+</ol>
+<p>完全不用碰发布仓库。唯一要记得的是 PAT 有有效期，到期后重新生成并更新 <code>DEPLOY_TOKEN</code> secret 即可。</p>
+<h2 id="待优化部署推送方式可切换为-gh-pages-工具">待优化：部署推送方式可切换为 gh-pages 工具</h2>
+<p>目前 workflow 里的推送步骤是手写的 git 命令（init → commit → force push）。它能工作，但生态里有两个更成熟的工具可以替换，先记录在这里，以后需要时再切换：</p>
+<h3 id="备选一gh-pages-npm-包">备选一：<code>gh-pages</code> npm 包</h3>
+<p>专门做「把目录推送到 Pages 分支」的 Node 工具，封装了 git 细节：</p>
+<div class="expressive-code"><figure class="frame"><figcaption class="header"></figcaption><pre data-language="yaml"><code><div class="ec-line"><div class="code"><span style="--0:#24292E;--1:#E1E4E8">- </span><span style="--0:#1E7734;--1:#85E89D">name</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#032F62;--1:#9ECBFF">Push dist</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#1E7734;--1:#85E89D">env</span><span style="--0:#24292E;--1:#E1E4E8">:</span></div></div><div class="ec-line"><div class="code"><span class="indent">    </span><span style="--0:#1E7734;--1:#85E89D">DEPLOY_TOKEN</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#032F62;--1:#9ECBFF">${{ secrets.DEPLOY_TOKEN }}</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#1E7734;--1:#85E89D">run</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#BF3441;--1:#F97583">|</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">    </span></span><span style="--0:#032F62;--1:#9ECBFF">npx gh-pages \</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">      </span></span><span style="--0:#032F62;--1:#9ECBFF">--dotfiles \</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">      </span></span><span style="--0:#032F62;--1:#9ECBFF">--dist out \</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">      </span></span><span style="--0:#032F62;--1:#9ECBFF">--branch main \</span></div></div><div class="ec-line"><div class="code"><span class="indent"><span style="--0:#032F62;--1:#9ECBFF">      </span></span><span style="--0:#032F62;--1:#9ECBFF">--repo &quot;https://x-access-token:${DEPLOY_TOKEN}@github.com/tisou1/tisou1.github.io.git&quot;</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="- name: Push dist  env:    DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}  run: |    npx gh-pages \      --dotfiles \      --dist out \      --branch main \      --repo &quot;https://x-access-token:${DEPLOY_TOKEN}@github.com/tisou1/tisou1.github.io.git&quot;"><div></div></button></div></figure></div>
+<p>注意：它默认排除点开头文件，<strong><code>--dotfiles</code> 必须加</strong>，否则 <code>.nojekyll</code> 推不上去，CSS/JS 又会 404。</p>
+<h3 id="备选二peaceirisactions-gh-pages">备选二：<code>peaceiris/actions-gh-pages</code></h3>
+<p>社区最流行的部署 Action，封装最全，<strong>自动生成 <code>.nojekyll</code></strong>、自动保留 CNAME：</p>
+<div class="expressive-code"><figure class="frame"><figcaption class="header"></figcaption><pre data-language="yaml"><code><div class="ec-line"><div class="code"><span style="--0:#24292E;--1:#E1E4E8">- </span><span style="--0:#1E7734;--1:#85E89D">name</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#032F62;--1:#9ECBFF">Push dist</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#1E7734;--1:#85E89D">uses</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#032F62;--1:#9ECBFF">peaceiris/actions-gh-pages@v4</span></div></div><div class="ec-line"><div class="code"><span class="indent">  </span><span style="--0:#1E7734;--1:#85E89D">with</span><span style="--0:#24292E;--1:#E1E4E8">:</span></div></div><div class="ec-line"><div class="code"><span class="indent">    </span><span style="--0:#1E7734;--1:#85E89D">personal_token</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#032F62;--1:#9ECBFF">${{ secrets.DEPLOY_TOKEN }}</span></div></div><div class="ec-line"><div class="code"><span class="indent">    </span><span style="--0:#1E7734;--1:#85E89D">external_repository</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#032F62;--1:#9ECBFF">tisou1/tisou1.github.io</span></div></div><div class="ec-line"><div class="code"><span class="indent">    </span><span style="--0:#1E7734;--1:#85E89D">publish_branch</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#032F62;--1:#9ECBFF">main</span></div></div><div class="ec-line"><div class="code"><span class="indent">    </span><span style="--0:#1E7734;--1:#85E89D">publish_dir</span><span style="--0:#24292E;--1:#E1E4E8">: </span><span style="--0:#032F62;--1:#9ECBFF">./out</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="- name: Push dist  uses: peaceiris/actions-gh-pages@v4  with:    personal_token: ${{ secrets.DEPLOY_TOKEN }}    external_repository: tisou1/tisou1.github.io    publish_branch: main    publish_dir: ./out"><div></div></button></div></figure></div>
+<h3 id="对比与切换时机">对比与切换时机</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th></th><th>手写 git（现状）</th><th><code>gh-pages</code> 包</th><th><code>peaceiris</code> Action</th></tr></thead><tbody><tr><td><code>.nojekyll</code></td><td>手动 <code>touch</code></td><td>需 <code>--dotfiles</code> + 手动生成</td><td>自动生成</td></tr><tr><td>依赖</td><td>零依赖</td><td>npx 安装</td><td>第三方 Action</td></tr><tr><td>CNAME 保留</td><td>无</td><td>不自动处理</td><td>自动保留</td></tr></tbody></table>
+<p>当前手写版本零依赖、逻辑透明，暂时够用。<strong>等需要绑定自定义域名（要保留 CNAME）时，再切换到 <code>peaceiris/actions-gh-pages</code></strong>，切换时删掉 workflow 里的 <code>touch .nojekyll</code> 即可。</p></div><p class="back-link" data-pagefind-ignore><a href="/posts">← 返回文章列表</a></p></article></main><footer><span><abbr title="本网站及其所有内容采用知识共享署名-非商业性使用 4.0 国际许可协议授权。">CC BY-NC 4.0</abbr> 2026 © tisou1.</span><div class="footer-links"><a href="https://github.com/tisou1">GitHub ↗</a><a href="/rss.xml">RSS ↗</a><a href="#main">回到顶部 ↑</a></div></footer><script type="module">var e=document.querySelector(`#theme-toggle`);function t(){let t=document.documentElement.dataset.theme===`dark`;e.setAttribute(`aria-pressed`,String(t)),e.setAttribute(`aria-label`,t?`切换浅色模式`:`切换深色模式`)}t(),e.addEventListener(`click`,()=>{let e=document.documentElement.dataset.theme===`dark`?`light`:`dark`;document.documentElement.dataset.theme=e;try{localStorage.setItem(`theme`,e)}catch{}t()}),matchMedia(`(prefers-color-scheme: dark)`).addEventListener(`change`,e=>{try{if(localStorage.getItem(`theme`))return}catch{}document.documentElement.dataset.theme=e.matches?`dark`:`light`,t()}),document.querySelector(`#close-banner`)?.addEventListener(`click`,()=>{document.querySelector(`#banner`).hidden=!0;try{localStorage.setItem(`blog-banner`,`hidden`)}catch{}}),document.addEventListener(`keydown`,e=>{(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()===`k`&&(e.preventDefault(),window.location.href=`/search`)});</script></body></html>

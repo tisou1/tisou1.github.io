@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><title>Git 提交信息规范与日常工作流 · tisou1 的博客</title><meta name="description" content="一份实用的 commit message 约定，以及单人/协作场景下的分支工作流。"><link rel="canonical" href="https://tisou1.github.io/posts/git-workflow.html"><meta property="og:title" content="Git 提交信息规范与日常工作流"><meta property="og:description" content="一份实用的 commit message 约定，以及单人/协作场景下的分支工作流。"><meta property="og:type" content="article"><meta property="og:url" content="https://tisou1.github.io/posts/git-workflow.html"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="alternate" type="application/rss+xml" title="tisou1 的博客" href="/rss.xml"><script>
+      try {
+        const theme = localStorage.getItem('theme');
+        document.documentElement.dataset.theme = theme === 'dark' || (!theme && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+      } catch { document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+    </script><link rel="stylesheet" href="/_astro/Base.C9xW9-QR.css"></head><body><a class="skip-link" href="#main">跳到正文</a><div class="banner" id="banner">一份关于技术、实践与思考的个人笔记 <button type="button" id="close-banner" aria-label="关闭欢迎横幅">×</button></div><script>
+      try { if (localStorage.getItem('blog-banner') === 'hidden') document.getElementById('banner').hidden = true; } catch {}
+    </script><header class="header"><a class="brand" href="/" aria-label="tisou1 的博客首页"><span class="brand-name">tisou1<span class="brand-dot">.</span></span><span class="brand-caption">PERSONAL NOTES</span></a><nav aria-label="主导航"><a href="/">关于</a><a href="/posts" aria-current="page">文章</a><a href="/docs">实验室</a></nav><div class="tools"><a href="/search" class="search-link" aria-label="搜索文章" title="搜索文章 (Ctrl / ⌘ K)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg></a><button type="button" id="theme-toggle" aria-label="切换深色模式" aria-pressed="false"><svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20 14.5A8.6 8.6 0 0 1 9.5 4 8.7 8.7 0 1 0 20 14.5Z"></path></svg><svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"></path></svg></button></div></header><main class="reading-layout" id="main" tabindex="-1" data-pagefind-body="true"><article><header class="post-heading"><a class="article-back" href="/posts" data-pagefind-ignore>← 文章与笔记</a><h1 data-pagefind-meta="title">Git 提交信息规范与日常工作流</h1><p class="meta"><time datetime="2026-08-15T00:00:00.000Z">2026-08-15</time> · tisou1 · 2 分钟阅读</p><div class="tags" data-pagefind-ignore><a class="tag" href="/tags/Git">Git</a><a class="tag" href="/tags/%E5%B7%A5%E7%A8%8B%E5%8C%96">工程化</a></div></header><details class="toc" data-pagefind-ignore><summary>文章目录</summary><ul><li><a href="#为什么要规范提交信息">为什么要规范提交信息</a></li><li><a href="#conventional-commits-约定">Conventional Commits 约定</a></li><li><a href="#日常工作流">日常工作流</a></li><li><a href="#一点补充">一点补充</a></li></ul></details><div class="prose"><blockquote>
+<p>本文是一篇技术随笔，分享我日常写 Git 提交信息的习惯。</p>
+</blockquote>
+<h2 id="为什么要规范提交信息">为什么要规范提交信息</h2>
+<p>提交信息是给<strong>未来的自己</strong>和<strong>协作者</strong>看的。清晰的历史记录能让你：</p>
+<ul>
+<li><code>git log --oneline</code> 一眼扫出变更脉络</li>
+<li><code>git bisect</code> 定位问题时更快</li>
+<li>自动生成 changelog</li>
+</ul>
+<h2 id="conventional-commits-约定">Conventional Commits 约定</h2>
+<p>最常用的格式是 <strong>type(scope): subject</strong>：</p>
+<div class="expressive-code"><link rel="stylesheet" href="/_astro/ec.1ajff.css"/><script type="module" src="/_astro/ec.0vx5m.js"></script><figure class="frame"><figcaption class="header"></figcaption><pre data-language="text"><code><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">feat(auth): 增加登录功能</span></div></div><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">fix(parser): 修复空行解析报错</span></div></div><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">docs: 更新 README</span></div></div><div class="ec-line"><div class="code"><span style="--0:#24292e;--1:#e1e4e8">refactor(utils): 拆分 formatDate 函数</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="feat(auth): 增加登录功能fix(parser): 修复空行解析报错docs: 更新 READMErefactor(utils): 拆分 formatDate 函数"><div></div></button></div></figure></div>
+<p>常用 type：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>type</th><th>含义</th><th>例子</th></tr></thead><tbody><tr><td><code>feat</code></td><td>新功能</td><td>增加搜索框</td></tr><tr><td><code>fix</code></td><td>修复 bug</td><td>修复深色模式闪烁</td></tr><tr><td><code>docs</code></td><td>文档</td><td>补充注释</td></tr><tr><td><code>refactor</code></td><td>重构</td><td>提取公共函数</td></tr><tr><td><code>perf</code></td><td>性能优化</td><td>缓存计算结果</td></tr><tr><td><code>test</code></td><td>测试</td><td>补充单测</td></tr><tr><td><code>chore</code></td><td>杂项</td><td>升级依赖</td></tr></tbody></table>
+<h2 id="日常工作流">日常工作流</h2>
+<p>我个人的习惯，单人项目：</p>
+<div class="expressive-code"><figure class="frame is-terminal"><figcaption class="header"><span class="title"></span><span class="sr-only">Terminal window</span></figcaption><pre data-language="bash"><code><div class="ec-line"><div class="code"><span style="--0:#6F42C1;--1:#B392F0">git</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#032F62;--1:#9ECBFF">checkout</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#005CC5;--1:#79B8FF">-b</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#032F62;--1:#9ECBFF">feat/xxx</span><span style="--0:#24292E;--1:#E1E4E8">   </span><span style="--0:#616972;--1:#99A0A6"># 新建分支</span></div></div><div class="ec-line"><div class="code"><span style="--0:#6F42C1;--1:#B392F0">git</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#032F62;--1:#9ECBFF">add</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#005CC5;--1:#79B8FF">-p</span><span style="--0:#24292E;--1:#E1E4E8">                 </span><span style="--0:#616972;--1:#99A0A6"># 分块暂存</span></div></div><div class="ec-line"><div class="code"><span style="--0:#6F42C1;--1:#B392F0">git</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#032F62;--1:#9ECBFF">commit</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#005CC5;--1:#79B8FF">-m</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#032F62;--1:#9ECBFF">&quot;feat: ...&quot;</span><span style="--0:#24292E;--1:#E1E4E8">  </span><span style="--0:#616972;--1:#99A0A6"># 小而完整的提交</span></div></div><div class="ec-line"><div class="code"><span style="--0:#6F42C1;--1:#B392F0">git</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#032F62;--1:#9ECBFF">push</span><span style="--0:#24292E;--1:#E1E4E8"> &amp;&amp; </span><span style="--0:#6F42C1;--1:#B392F0">git</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#032F62;--1:#9ECBFF">merge</span><span style="--0:#24292E;--1:#E1E4E8">      </span><span style="--0:#616972;--1:#99A0A6"># 合回主干</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="git checkout -b feat/xxx   # 新建分支git add -p                 # 分块暂存git commit -m &quot;feat: ...&quot;  # 小而完整的提交git push &amp;&amp; git merge      # 合回主干"><div></div></button></div></figure></div>
+<p>几个要点：</p>
+<ol>
+<li><strong>提交要小</strong>：一个提交只做一件事</li>
+<li><strong>提交信息写”为什么”</strong>：<code>fix: 延迟初始化连接，避免启动时白屏</code> 比 <code>fix: bug</code> 有用得多</li>
+<li><strong>改完立刻提交</strong>：防止工作区堆积一堆未提交的改动</li>
+</ol>
+<h2 id="一点补充">一点补充</h2>
+<p>如果团队有要求，可以用 commitlint 在提交时强制校验格式：</p>
+<div class="expressive-code"><figure class="frame is-terminal"><figcaption class="header"><span class="title"></span><span class="sr-only">Terminal window</span></figcaption><pre data-language="bash"><code><div class="ec-line"><div class="code"><span style="--0:#6F42C1;--1:#B392F0">pnpm</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#032F62;--1:#9ECBFF">add</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#005CC5;--1:#79B8FF">-D</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#032F62;--1:#9ECBFF">@commitlint/cli</span><span style="--0:#24292E;--1:#E1E4E8"> </span><span style="--0:#032F62;--1:#9ECBFF">@commitlint/config-conventional</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="pnpm add -D @commitlint/cli @commitlint/config-conventional"><div></div></button></div></figure></div>
+<p>不过工具只是手段，<strong>让队友看得懂</strong>才是目的。</p></div><p class="back-link" data-pagefind-ignore><a href="/posts">← 返回文章列表</a></p></article></main><footer><span><abbr title="本网站及其所有内容采用知识共享署名-非商业性使用 4.0 国际许可协议授权。">CC BY-NC 4.0</abbr> 2026 © tisou1.</span><div class="footer-links"><a href="https://github.com/tisou1">GitHub ↗</a><a href="/rss.xml">RSS ↗</a><a href="#main">回到顶部 ↑</a></div></footer><script type="module">var e=document.querySelector(`#theme-toggle`);function t(){let t=document.documentElement.dataset.theme===`dark`;e.setAttribute(`aria-pressed`,String(t)),e.setAttribute(`aria-label`,t?`切换浅色模式`:`切换深色模式`)}t(),e.addEventListener(`click`,()=>{let e=document.documentElement.dataset.theme===`dark`?`light`:`dark`;document.documentElement.dataset.theme=e;try{localStorage.setItem(`theme`,e)}catch{}t()}),matchMedia(`(prefers-color-scheme: dark)`).addEventListener(`change`,e=>{try{if(localStorage.getItem(`theme`))return}catch{}document.documentElement.dataset.theme=e.matches?`dark`:`light`,t()}),document.querySelector(`#close-banner`)?.addEventListener(`click`,()=>{document.querySelector(`#banner`).hidden=!0;try{localStorage.setItem(`blog-banner`,`hidden`)}catch{}}),document.addEventListener(`keydown`,e=>{(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()===`k`&&(e.preventDefault(),window.location.href=`/search`)});</script></body></html>
